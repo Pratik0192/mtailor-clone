@@ -65,12 +65,20 @@ const CaptureMeasurement = () => {
 
       const leftShoulder = results.poseLandmarks[11];
       const rightShoulder = results.poseLandmarks[12];
+
+      //for depth calculation
+      const zscale = Math.abs(leftShoulder.z + rightShoulder.z) / 2;
+
       const shoulderWidth = Math.sqrt(
         Math.pow(rightShoulder.x - leftShoulder.x, 2) + Math.pow(rightShoulder.y - leftShoulder.y, 2)
       );
 
+      const adjustedShoulderWidth = shoulderWidth / zscale;
+
       if (!capturedMeasurement) {
-        setMeasurements({ shoulderWidth: (shoulderWidth * 100).toFixed(2) });
+        setMeasurements({ 
+          shoulderWidth: (adjustedShoulderWidth * 100).toFixed(2) 
+        });
       }
     }
   };
