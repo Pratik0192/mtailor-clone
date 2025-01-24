@@ -37,6 +37,8 @@ const CaptureMeasurement = () => {
         height: 480,
       });
       camera.start();
+    } else {
+      console.error("video element is not available")
     }
   };
 
@@ -64,16 +66,20 @@ const CaptureMeasurement = () => {
         Math.pow(rightShoulder.x - leftShoulder.x, 2) + Math.pow(rightShoulder.y - leftShoulder.y, 2)
       );
 
-      setMeasurements({ shoulderWidth: (shoulderWidth * 100).toFixed(2) }); // Scale for display
+      setMeasurements({ shoulderWidth: (shoulderWidth * 100).toFixed(2) });
     }
   };
 
   const startCamera = () => {
     setIsCameraOpen(true);
-    if(videoRef.current) {
+
+    if (videoRef.current) {
+      console.log("starting camera...");
       videoRef.current.play();
+      initializePose();
+    } else {
+      console.error("video element is not initialized");
     }
-    initializePose();
   }
 
   return (
@@ -88,13 +94,16 @@ const CaptureMeasurement = () => {
         <div className='relative w-full max-w-lg h-[320px] md:h-[480px] '>
           <video
             ref={videoRef}
-            className='absolute top-0 left-0 w-full h-full hidden'
+            className='absolute top-0 left-0 w-full h-full'
+            autoPlay
+            muted
+            playsInline
           />
 
           <canvas
             ref={canvasRef}
-            width="640px"
-            height="480px"
+            width={640}
+            height={480}
             className='absolute top-0 left-0 w-full h-full rounded-lg shadow-md border border-gray-300'
           />
         </div>
