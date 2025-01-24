@@ -10,6 +10,8 @@ const CaptureMeasurement = () => {
   const canvasRef = useRef(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [measurements, setMeasurements] = useState(null);
+  const [capturedMeasurement, setCapturedMeasurement] = useState(null); // Store finalized measurement
+  const [poseInstance, setPoseInstance] = useState(null); // Reference to the Pose instance
 
 
   //initialize mediapipe pose
@@ -27,6 +29,7 @@ const CaptureMeasurement = () => {
     });
 
     pose.onResults(onPoseResults);
+    setPoseInstance(pose);
 
     if(videoRef.current) {
       const camera = new Camera(videoRef.current, {
@@ -66,7 +69,9 @@ const CaptureMeasurement = () => {
         Math.pow(rightShoulder.x - leftShoulder.x, 2) + Math.pow(rightShoulder.y - leftShoulder.y, 2)
       );
 
-      setMeasurements({ shoulderWidth: (shoulderWidth * 100).toFixed(2) });
+      if (!capturedMeasurement) {
+        setMeasurements({ shoulderWidth: (shoulderWidth * 100).toFixed(2) });
+      }
     }
   };
 
@@ -82,15 +87,25 @@ const CaptureMeasurement = () => {
     }
   }
 
+  const finalizeMeasurement = () => {
+    setCapturedMeasurement(measurements);
+    if(poseInstance) {
+      poseInstance.close();
+    }
+    if( videoRef.current) {
+      videoRef.current.pause();
+    }
+  }
+
   return (
     <div className='flex flex-col items-center px-4 py-6 space-y-6'>
       <button 
-        className='bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-lg hover:bg-blue-700 transition duration-300' 
         onClick={startCamera}
+        className='bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-lg hover:bg-blue-700 transition duration-300' 
       >
         Take measurement
       </button>
-      {setIsCameraOpen && (
+      {isCameraOpen && (
         <div className='relative w-full max-w-lg h-[320px] md:h-[480px] '>
           <video
             ref={videoRef}
@@ -107,6 +122,15 @@ const CaptureMeasurement = () => {
             className='absolute top-0 left-0 w-full h-full rounded-lg shadow-md border border-gray-300'
           />
         </div>
+      )}
+
+      {isCameraOpen && measurements && !capturedMeasurement && (
+        <button 
+          onClick={finalizeMeasurement}
+          className="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg shadow-lg hover:bg-green-700 transition duration-300"
+        >
+          Capure Measurement
+        </button>
       )}
 
       {measurements && (
