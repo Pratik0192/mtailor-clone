@@ -59,25 +59,37 @@ const CaptureMeasurement = () => {
       canvasElement.height
     );
 
+    //calculating 3d distance
+    const calculate3DDistance = (landmark1, landmark2) => {
+      const dx = landmark2.x - landmark1.x;
+      const dy = landmark2.y - landmark1.y;
+      const dz = landmark2.z - landmark1.z;
+
+      return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    const drawLineBetweenShoulders = (leftShoulder, rightShoulder, ctx) => {
+      ctx.beginPath();
+      ctx.moveTo(leftShoulder.x * 640, leftShoulder.y * 480); 
+      ctx.lineTo(rightShoulder.x * 640, rightShoulder.y * 480);
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+
     //draw landmarks
     if (results.poseLandmarks) {
-      drawingUtils.drawLandmarks(canvasCtx, results.poseLandmarks, mpPose.POSE_LANDMARKS);
+      //drawingUtils.drawLandmarks(canvasCtx, results.poseLandmarks, mpPose.POSE_LANDMARKS);
 
       const leftShoulder = results.poseLandmarks[11];
       const rightShoulder = results.poseLandmarks[12];
+      drawLineBetweenShoulders(leftShoulder, rightShoulder, canvasCtx);
 
-      //for depth calculation
-      const zscale = Math.abs(leftShoulder.z + rightShoulder.z) / 2;
-
-      const shoulderWidth = Math.sqrt(
-        Math.pow(rightShoulder.x - leftShoulder.x, 2) + Math.pow(rightShoulder.y - leftShoulder.y, 2)
-      );
-
-      const adjustedShoulderWidth = shoulderWidth / zscale;
+      const shoulderWidth = calculate3DDistance(leftShoulder, rightShoulder);
 
       if (!capturedMeasurement) {
         setMeasurements({ 
-          shoulderWidth: (adjustedShoulderWidth * 100).toFixed(2) 
+          shoulderWidth: (shoulderWidth * 100).toFixed(2) 
         });
       }
     }
