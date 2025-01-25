@@ -103,7 +103,7 @@ const CaptureMeasurement = () => {
 
       //scale with real world units
       const scalingFactor = calculateScalingFactor(results, canvasElement);
-      const shoulderWidth = (pixelDistance * scalingFactor).toFixed(2);
+      const shoulderWidth = (pixelDistance * scalingFactor / 5).toFixed(2);
 
       if (!capturedMeasurement) {
         setMeasurements({ shoulderWidth });
