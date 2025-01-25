@@ -3,6 +3,7 @@ import { Pose } from '@mediapipe/pose';
 import { Camera } from '@mediapipe/camera_utils';
 import * as drawingUtils from "@mediapipe/drawing_utils"
 import * as mpPose from "@mediapipe/pose"
+import * as THREE from 'three'
 
 const CaptureMeasurement = () => {
 
@@ -13,6 +14,7 @@ const CaptureMeasurement = () => {
   const [capturedMeasurement, setCapturedMeasurement] = useState(null); // Store finalized measurement
   const [poseInstance, setPoseInstance] = useState(null); // Reference to the Pose instance
 
+  const referenceObjectSize = 21; //for reference
 
   //initialize mediapipe pose
   const initializePose = () => {
@@ -48,8 +50,7 @@ const CaptureMeasurement = () => {
   //handle pose
   const onPoseResults = (results) => {
     const canvasElement = canvasRef.current;
-    const canvasCtx = canvasElement.getContext("2d");
-
+    const canvasCtx = canvasElement.getContext('2d');
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
     canvasCtx.drawImage(
       results.image,
@@ -59,40 +60,61 @@ const CaptureMeasurement = () => {
       canvasElement.height
     );
 
-    //calculating 3d distance
-    const calculate3DDistance = (landmark1, landmark2) => {
-      const dx = landmark2.x - landmark1.x;
-      const dy = landmark2.y - landmark1.y;
-      const dz = landmark2.z - landmark1.z;
+    if(results.poseLandmarks) {
+      //drawing landmarks
+      results.poseLandmarks.forEach((landmark) => {
+        canvasCtx.beginPath();
+        canvasCtx.arc(
+          landmark.x * canvasElement.width,
+          landmark.y * canvasElement.height,
+          5,
+          0,
+          2 * Math.PI
+        );
+        canvasCtx.fillStyle = 'red';
+        canvasCtx.fill();
+      });
 
-      return Math.sqrt(dx * dx + dy * dy + dz * dz);
-    }
-
-    const drawLineBetweenShoulders = (leftShoulder, rightShoulder, ctx) => {
-      ctx.beginPath();
-      ctx.moveTo(leftShoulder.x * 640, leftShoulder.y * 480); 
-      ctx.lineTo(rightShoulder.x * 640, rightShoulder.y * 480);
-      ctx.strokeStyle = "red";
-      ctx.lineWidth = 3;
-      ctx.stroke();
-    }
-
-    //draw landmarks
-    if (results.poseLandmarks) {
-      //drawingUtils.drawLandmarks(canvasCtx, results.poseLandmarks, mpPose.POSE_LANDMARKS);
-
+      //draw shoulders
       const leftShoulder = results.poseLandmarks[11];
       const rightShoulder = results.poseLandmarks[12];
-      drawLineBetweenShoulders(leftShoulder, rightShoulder, canvasCtx);
 
-      const shoulderWidth = calculate3DDistance(leftShoulder, rightShoulder);
+      //line between soulder
+      canvasCtx.beginPath();
+      canvasCtx.moveTo(
+        leftShoulder.x * canvasElement.width,
+        leftShoulder.y * canvasElement.height
+      );
+      canvasCtx.lineTo(
+        rightShoulder.x * canvasElement.width,
+        rightShoulder.y * canvasElement.height
+      );
+      canvasCtx.strokeStyle = 'blue';
+      canvasCtx.lineWidth = 2;
+      canvasCtx.stroke();
+
+      //calc shoulder width in pixels
+      const pixelDistance = calculate2DDistance(
+        leftShoulder,
+        rightShoulder,
+        canvasElement.width,
+        canvasElement.height
+      );
+
+      //scale with real world units
+      const scalingFactor = calculateScalingFactor(results, canvasElement);
+      const shoulderWidth = (pixelDistance * scalingFactor).toFixed(2);
 
       if (!capturedMeasurement) {
-        setMeasurements({ 
-          shoulderWidth: (shoulderWidth * 100).toFixed(2) 
-        });
+        setMeasurements({ shoulderWidth });
       }
     }
+  };
+
+  const calculate2DDistance = (point1, point2, width, height) => {
+    const dx = (point2.x - point1.x) * width;
+    const dy = (point2.y - point1.y) * height;
+    return Math.sqrt(dx * dx + dy * dy);
   };
 
   const startCamera = () => {
@@ -106,6 +128,20 @@ const CaptureMeasurement = () => {
       console.error("video element is not initialized");
     }
   }
+
+  const calculateScalingFactor = (results, canvasElement) => {
+    const refCorner1 = results.poseLandmarks[0]; 
+    const refCorner2 = results.poseLandmarks[1]; 
+
+    const pixelDistance = calculate2DDistance(
+      refCorner1,
+      refCorner2,
+      canvasElement.width,
+      canvasElement.height
+    );
+
+    return referenceObjectSize / pixelDistance; // cm per pixel
+  };
 
   const finalizeMeasurement = () => {
     setCapturedMeasurement(measurements);
@@ -139,7 +175,7 @@ const CaptureMeasurement = () => {
             ref={canvasRef}
             width={640}
             height={480}
-            className='absolute top-0 left-0 w-full h-full rounded-lg shadow-md border border-gray-300'
+            className='absolute top-0 left-0 w-full h-full rounded-lg shadow-md border border-black'
           />
         </div>
       )}
